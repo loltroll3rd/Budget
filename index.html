@@ -155,6 +155,7 @@
             z-index: 1000;
         }
         .chat-button:hover { background: #7e22ce; transform: scale(1.1); }
+        .chat-button:active { transform: scale(0.95); }
         .chat-modal {
             position: fixed;
             inset: 0;
@@ -404,11 +405,19 @@ document.getElementById('income').addEventListener('input', (e) => {
 });
 
 document.getElementById('chatButton').addEventListener('click', () => {
+    console.log('Chat button clicked!');
     document.getElementById('chatModal').classList.remove('hidden');
 });
 
 document.getElementById('chatInput').addEventListener('keypress', (e) => {
     if (e.key === 'Enter') sendMessage();
+});
+
+window.addEventListener('click', (e) => {
+    const modal = document.getElementById('chatModal');
+    if (e.target === modal) {
+        closeChat();
+    }
 });
 
 function closeChat() {
@@ -579,4 +588,213 @@ async function sendMessage() {
     
     if (!message || isTyping) return;
     
-    messages.push({ role: 'user', content: message
+    messages.push({ role: 'user', content: message });
+    input.value = '';
+    renderMessages();
+    isTyping = true;
+    
+    if (useRealAI && apiKey) {
+        console.log('🤖 AI Mode enabled, calling Qwen2.5-72B-Instruct...');
+        try {
+            const response = await getAIResponse(message);
+            messages.push({ role: 'assistant', content: response });
+            isTyping = false;
+            renderMessages();
+        } catch (error) {
+            console.error('💥 AI Error:', error);
+            console.error('Error details:', { name: error.name, message: error.message });
+            
+            let errorMsg = '⚠️ AI Connection Failed\n\n';
+            if (error.message.includes('Failed to fetch') || error.name === 'TypeError') {
+                errorMsg += 'Cannot connect to Hugging Face API.\n\nPossible causes:\n• CORS restrictions (try local file)\n• Network/firewall blocking\n• API rate limits\n\n💡 Download and open locally for full AI features.\n\nUsing basic responses:\n\n';
+            } else if (error.message.includes('503')) {
+                errorMsg += 'Model is loading (first request takes 20-30s).\nPlease try again in a moment.\n\nUsing basic responses:\n\n';
+            } else {
+                errorMsg += `Error: ${error.message}\n\nUsing basic responses:\n\n`;
+            }
+            
+            messages.push({ role: 'assistant', content: errorMsg + generateAdvice(message) });
+            isTyping = false;
+            renderMessages();
+        }
+    } else {
+        console.log('📝 Basic mode - no API key');
+        setTimeout(() => {
+            messages.push({ role: 'assistant', content: generateAdvice(message) });
+            isTyping = false;
+            renderMessages();
+        }, 800);
+    }
+}
+
+async function getAIResponse(userMessage) {
+    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+    const remaining = income - totalExpenses;
+    const savingsRate = income > 0 ? ((remaining / income) * 100).toFixed(1) : 0;
+    
+    const expenseBreakdown = Object.keys(categories).map(id => {
+        const total = expenses.filter(e => e.category === id).reduce((sum, e) => sum + e.amount, 0);
+        return total > 0 ? `${categories[id].name}: ${total.toFixed(2)}` : null;
+    }).filter(x => x).join(', ') || 'No expenses yet';
+    
+    const systemPrompt = `You are a helpful financial advisor. Provide specific, actionable advice based on the user's budget data. Keep responses concise (under 150 words) and practical.`;
+    
+    const userPrompt = `Here is my budget data:
+- Weekly Budget: ${income.toFixed(2)}
+- Total Expenses: ${totalExpenses.toFixed(2)}
+- Remaining: ${remaining.toFixed(2)}
+- Savings Rate: ${savingsRate}%
+- Expense Breakdown: ${expenseBreakdown}
+
+Question: ${userMessage}
+
+Please provide specific financial advice based on my actual data.`;
+
+    console.log('📤 Sending request to Qwen2.5-72B-Instruct...');
+    
+    const response = await fetch('https://api-inference.huggingface.co/models/Qwen/Qwen2.5-72B-Instruct', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            inputs: `<|im_start|>system\n${systemPrompt}<|im_end|>\n<|im_start|>user\n${userPrompt}<|im_end|>\n<|im_start|>assistant\n`,
+            parameters: {
+                max_new_tokens: 250,
+                temperature: 0.7,
+                top_p: 0.9,
+                return_full_text: false,
+                stop: ["<|im_end|>", "<|endoftext|>"]
+            }
+        })
+    });
+    
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ API Response Error:', response.status, errorText);
+        throw new Error(`API Error: ${response.status} - ${errorText.substring(0, 100)}`);
+    }
+    
+    const data = await response.json();
+    console.log('✅ AI Response received:', data);
+    
+    if (Array.isArray(data) && data[0]?.generated_text) {
+        let aiText = data[0].generated_text.trim();
+        
+        // Clean up the response
+        aiText = aiText.replace(systemPrompt, '').replace(userPrompt, '').trim();
+        aiText = aiText.split('<|im_end|>')[0].trim();
+        aiText = aiText.split('<|endoftext|>')[0].trim();
+        
+        // Remove any leftover prompt fragments
+        const lines = aiText.split('\n').filter(line => {
+            const lower = line.toLowerCase();
+            return !lower.includes('weekly budget') && 
+                   !lower.includes('question:') && 
+                   !lower.includes('expense breakdown');
+        });
+        
+        const cleanedResponse = lines.join('\n').trim();
+        
+        if (cleanedResponse && cleanedResponse.length > 20) {
+            return cleanedResponse;
+        }
+    }
+    
+    console.log('⚠️ No valid AI response, using fallback');
+    return generateAdvice(userMessage);
+}
+
+function generateAdvice(question) {
+    const lowerQ = question.toLowerCase();
+    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+    const remaining = income - totalExpenses;
+    const savingsRate = income > 0 ? ((remaining / income) * 100).toFixed(1) : 0;
+    
+    if (lowerQ.includes('save') || lowerQ.includes('saving')) {
+        if (savingsRate < 10) {
+            return `Your savings rate is ${savingsRate}%. Financial experts recommend 20%+!\n\nQuick tips:\n• Reduce your top spending category by 10-15%\n• Set up automatic savings transfers\n• Try the 50/30/20 rule: 50% needs, 30% wants, 20% savings`;
+        }
+        if (savingsRate >= 20) {
+            return `Excellent! You're saving ${savingsRate}% 🎉\n\nNext steps:\n• Consider investing for growth\n• Build 3-6 month emergency fund\n• Look into retirement accounts (401k, IRA)`;
+        }
+        return `${savingsRate}% savings is good! To reach 20%:\n\n• Cut one discretionary expense\n• "Pay yourself first" - save before spending\n• Track every purchase for a week`;
+    }
+    
+    if (lowerQ.includes('spend') || lowerQ.includes('budget') || lowerQ.includes('too much')) {
+        const categoryTotals = {};
+        expenses.forEach(e => {
+            categoryTotals[e.category] = (categoryTotals[e.category] || 0) + e.amount;
+        });
+        
+        const overBudget = Object.keys(categories).filter(id => {
+            const budget = budgets.find(b => b.category === id);
+            const spent = categoryTotals[id] || 0;
+            return budget && (spent / budget.limit) > 1;
+        });
+        
+        if (overBudget.length > 0) {
+            const names = overBudget.map(id => categories[id].name).join(', ');
+            return `⚠️ Over budget in: ${names}\n\nActions to take:\n• Review recent purchases\n• Set realistic limits\n• Use the 24-hour rule before buying\n• Find cheaper alternatives`;
+        }
+        
+        const highest = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0];
+        if (highest) {
+            return `Your top spending is ${categories[highest[0]].name} at ${highest[1].toFixed(2)}\n\nConsider:\n• Setting a budget limit\n• Tracking each purchase\n• Finding cheaper alternatives\n• Reviewing if it aligns with your goals`;
+        }
+    }
+    
+    if (lowerQ.includes('emergency') || lowerQ.includes('fund')) {
+        const monthlyExpenses = totalExpenses || income * 0.5;
+        const target = (monthlyExpenses * 3).toFixed(2);
+        return `Emergency fund recommendation: 3-6 months of expenses\n\nYour target: ${target}\n\nHow to build it:\n• Open high-yield savings account\n• Save small amounts consistently\n• Use for true emergencies only\n• Keep it separate from checking`;
+    }
+    
+    if (lowerQ.includes('invest') || lowerQ.includes('stock') || lowerQ.includes('crypto')) {
+        return `Investment basics:\n\n✅ First steps:\n• Build 3-6 month emergency fund\n• Pay off high-interest debt\n• Max employer 401k match\n\n📊 Then consider:\n• Index funds (diversified, low-fee)\n• Retirement accounts (tax advantages)\n• Start small, invest consistently`;
+    }
+    
+    return `Budget Overview:\n\n💰 Income: ${income.toFixed(2)}\n💸 Expenses: ${totalExpenses.toFixed(2)}\n📊 Savings Rate: ${savingsRate}%\n\nKey tips:\n• Aim for 20% savings rate\n• Review spending weekly\n• Build 3-6 month emergency fund\n• Track every purchase\n• Set category budgets`;
+}
+
+function renderMessages() {
+    const container = document.getElementById('chatMessages');
+    
+    if (messages.length === 0) {
+        container.innerHTML = `
+            <div class="chat-empty">
+                <p>👋 Hi! I'm your AI financial advisor.</p>
+                <p>Ask me anything about your budget!</p>
+                <button class="suggestion-btn" onclick="askQuestion('How can I save more money?')">💰 How can I save more?</button>
+                <button class="suggestion-btn" onclick="askQuestion('Am I spending too much?')">📊 Am I overspending?</button>
+                <button class="suggestion-btn" onclick="askQuestion('Emergency fund tips?')">🆘 Emergency fund?</button>
+            </div>
+        `;
+    } else {
+        container.innerHTML = messages.map(msg => `
+            <div class="message ${msg.role}">
+                <div class="message-content">${msg.content}</div>
+            </div>
+        `).join('');
+        
+        if (isTyping) {
+            container.innerHTML += `
+                <div class="message assistant">
+                    <div class="typing-indicator">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        container.scrollTop = container.scrollHeight;
+    }
+}
+
+updateDisplay();
+    </script>
+</body>
+</html>
