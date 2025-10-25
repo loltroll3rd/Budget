@@ -283,7 +283,7 @@
         <div class="card">
             <div class="input-group">
                 <label>Weekly Budget</label>
-                <input type="number" id="income" placeholder="Enter your weekly budget" value="0">
+                <input type="number" id="income" placeholder="Enter your weekly budget" value="0" min="0" step="0.01">
             </div>
         </div>
         <div class="stats-grid">
@@ -558,6 +558,8 @@ function changeTheme(themeName) {
 
 // Event Listeners
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('Budget Tracker loaded');
+    
     const themeSelect = document.getElementById('themeSelect');
     if (themeSelect) {
         themeSelect.value = 'cyberpunk';
@@ -571,6 +573,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (incomeInput) {
         incomeInput.addEventListener('input', function(e) {
             income = parseFloat(e.target.value) || 0;
+            console.log('Income updated:', income);
             updateDisplay();
         });
     }
@@ -608,7 +611,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Force initial display update
     updateDisplay();
+    console.log('Initial display updated');
 });
 
 // UI Functions
