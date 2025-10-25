@@ -623,14 +623,14 @@
         </div>
     </div>
 
-    <button class="chat-button" onclick="toggleChat()" style="position: fixed; bottom: 2rem; right: 2rem; width: 60px; height: 60px; border-radius: 50%; background: #9333ea; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); display: flex; align-items: center; justify-content: center; z-index: 1000;">
+    <button class="chat-button" onclick="toggleChat()">
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
             <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
         </svg>
     </button>
 
-    <div id="chatModal" class="chat-modal hidden">
-        <div class="chat-container">
+    <div id="chatModal" class="chat-modal hidden" onclick="closeIfClickOutside(event)">
+        <div class="chat-container" onclick="event.stopPropagation()">
             <div class="chat-header">
                 <h3>💡 AI Financial Advisor</h3>
                 <button class="close-btn" onclick="toggleChat()">×</button>
@@ -811,6 +811,12 @@
         function toggleChat() {
             const modal = document.getElementById('chatModal');
             modal.classList.toggle('hidden');
+        }
+
+        function closeIfClickOutside(event) {
+            if (event.target.id === 'chatModal') {
+                toggleChat();
+            }
         }
 
         function askQuestion(question) {
