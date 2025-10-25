@@ -152,7 +152,6 @@
             align-items: center;
             justify-content: center;
             z-index: 1000;
-            transition: all 0.2s;
         }
         .chat-button:hover { background: #7e22ce; transform: scale(1.1); }
         .chat-modal {
@@ -320,15 +319,13 @@
             </div>
         </div>
     </div>
-    
     <button class="chat-button" id="chatButton">
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
             <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
         </svg>
     </button>
-    
     <div id="chatModal" class="chat-modal hidden">
-        <div class="chat-container" onclick="event.stopPropagation()">
+        <div class="chat-container">
             <div class="chat-header">
                 <h3>💡 AI Financial Advisor</h3>
                 <div class="header-buttons">
@@ -338,20 +335,30 @@
             </div>
             <div id="apiSettings" class="api-settings hidden">
                 <label style="font-size: 0.875rem; color: #d1d5db; margin-bottom: 0.5rem; display: block;">
-                    Choose AI Provider
+                    Groq API Key
                 </label>
-                <select id="aiProvider" onchange="updateProviderUI()" style="width: 100%; margin-bottom: 0.5rem; padding: 0.5rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); border-radius: 0.5rem; color: white;">
-                    <option value="none">Basic Advisor (No API)</option>
-                    <option value="groq">Groq (Fast & Free)</option>
-                    <option value="cohere">Cohere (Free)</option>
-                </select>
-                <input type="password" id="apiKeyInput" class="api-input" placeholder="Enter API key..." style="display:none;">
-                <button onclick="saveApiKey()" style="width: 100%; padding: 0.5rem; font-size: 0.875rem; display:none;" id="saveKeyBtn">Save Key</button>
+                <input type="password" id="apiKeyInput" class="api-input" placeholder="gsk_...">
+                <button onclick="saveApiKey()" style="width: 100%; padding: 0.5rem; font-size: 0.875rem;">Save Key</button>
                 <div class="api-toggle">
                     <span class="api-status" id="apiStatus"></span>
                     <span id="apiStatusText">Using basic responses</span>
                 </div>
-                <div id="providerInstructions" style="font-size: 0.75rem; color: #9ca3af; margin-top: 0.5rem;"></div>
+                <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem;">
+                    <strong>🚀 AI Feature Status:</strong><br>
+                    • Model: <strong>Llama 3.3 70B</strong> (Fast & Smart)<br>
+                    • Provider: <strong>Groq</strong> (Lightning Speed)<br>
+                    • Works everywhere including Claude.ai artifacts!<br>
+                </p>
+                <p style="font-size: 0.75rem; color: #22c55e; margin-top: 0.5rem;">
+                    <strong>Setup Instructions:</strong><br>
+                    1. Visit: <a href="https://console.groq.com/keys" target="_blank" style="color: #a855f7;">console.groq.com/keys</a><br>
+                    2. Create new API key<br>
+                    3. Paste key here (starts with gsk_)<br>
+                    4. Start chatting with AI advisor!
+                </p>
+                <p style="font-size: 0.7rem; color: #9ca3af; margin-top: 0.25rem;">
+                    💡 Free tier: 30 requests/min, instant responses
+                </p>
             </div>
             <div class="chat-messages" id="chatMessages">
                 <div class="chat-empty">
@@ -364,13 +371,12 @@
             </div>
             <div class="chat-input-container">
                 <div class="chat-input-wrapper">
-                    <input type="text" id="chatInput" class="chat-input" placeholder="Ask about your finances..." onkeypress="if(event.key==='Enter')sendMessage()">
+                    <input type="text" id="chatInput" class="chat-input" placeholder="Ask about your finances...">
                     <button onclick="sendMessage()">Send</button>
                 </div>
             </div>
         </div>
     </div>
-    
     <script>
 let income = 0;
 let expenses = [];
@@ -379,7 +385,6 @@ let messages = [];
 let isTyping = false;
 let apiKey = '';
 let useRealAI = false;
-let aiProvider = 'none';
 
 const categories = {
     food: { name: 'Food & Dining', color: 'color-orange' },
@@ -391,22 +396,22 @@ const categories = {
     other: { name: 'Other', color: 'color-gray' }
 };
 
-// Event listeners
-document.getElementById('income').addEventListener('input', (e) => {
+// Event Listeners
+document.getElementById('income').addEventListener('input', e => {
     income = parseFloat(e.target.value) || 0;
     updateDisplay();
 });
 
-// Click outside modal to close
-document.getElementById('chatModal').addEventListener('click', closeChat);
-
-function openChat() {
-    console.log('Opening chat...');
+document.getElementById('chatButton').addEventListener('click', () => {
     document.getElementById('chatModal').classList.remove('hidden');
-}
+});
 
+document.getElementById('chatInput').addEventListener('keypress', e => {
+    if (e.key === 'Enter') sendMessage();
+});
+
+// UI Functions
 function closeChat() {
-    console.log('Closing chat...');
     document.getElementById('chatModal').classList.add('hidden');
 }
 
@@ -423,7 +428,7 @@ function toggleAddBudget() {
 }
 
 function addExpense() {
-    const name = document.getElementById('expenseName').value;
+    const name = document.getElementById('expenseName').value.trim();
     const amount = document.getElementById('expenseAmount').value;
     const category = document.getElementById('expenseCategory').value;
     
@@ -452,7 +457,10 @@ function addBudget() {
         if (existingIndex >= 0) {
             budgets[existingIndex].limit = parseFloat(limit);
         } else {
-            budgets.push({ category: category, limit: parseFloat(limit) });
+            budgets.push({
+                category: category,
+                limit: parseFloat(limit)
+            });
         }
         
         document.getElementById('budgetLimit').value = '';
@@ -479,6 +487,7 @@ function updateDisplay() {
     const remainingCard = document.getElementById('remainingCard');
     remainingCard.className = remaining >= 0 ? 'stat-card remaining' : 'stat-card remaining negative';
     
+    // Update expenses list
     const expensesList = document.getElementById('expensesList');
     if (expenses.length === 0) {
         expensesList.innerHTML = '<div class="empty-state">No expenses yet</div>';
@@ -505,6 +514,7 @@ function updateDisplay() {
         }).join('');
     }
     
+    // Update budgets list
     const categoryTotals = {};
     expenses.forEach(e => {
         categoryTotals[e.category] = (categoryTotals[e.category] || 0) + e.amount;
@@ -523,7 +533,7 @@ function updateDisplay() {
             const cat = categories[budget.category];
             const spent = categoryTotals[budget.category] || 0;
             const percentage = (spent / budget.limit) * 100;
-            const color = percentage > 90 ? 'red' : percentage > 70 ? 'yellow' : 'green';
+            const colorClass = percentage > 90 ? 'red' : percentage > 70 ? 'yellow' : 'green';
             
             return `
                 <div class="budget-item">
@@ -535,7 +545,7 @@ function updateDisplay() {
                         <div class="budget-amount">$${spent.toFixed(2)} / $${budget.limit.toFixed(2)}</div>
                     </div>
                     <div class="progress-bar">
-                        <div class="progress-fill ${color}" style="width: ${Math.min(percentage, 100)}%"></div>
+                        <div class="progress-fill ${colorClass}" style="width: ${Math.min(percentage, 100)}%"></div>
                     </div>
                 </div>
             `;
@@ -543,52 +553,24 @@ function updateDisplay() {
     }
 }
 
-function updateProviderUI() {
-    aiProvider = document.getElementById('aiProvider').value;
-    const keyInput = document.getElementById('apiKeyInput');
-    const saveBtn = document.getElementById('saveKeyBtn');
-    const instructions = document.getElementById('providerInstructions');
-    
-    if (aiProvider === 'none') {
-        keyInput.style.display = 'none';
-        saveBtn.style.display = 'none';
-        instructions.innerHTML = '<strong>✅ Basic Mode Active</strong><br>No API needed. Works everywhere!';
-        useRealAI = false;
-        document.getElementById('apiStatus').classList.remove('active');
-        document.getElementById('apiStatusText').textContent = 'Using basic responses';
-    } else if (aiProvider === 'groq') {
-        keyInput.style.display = 'block';
-        saveBtn.style.display = 'block';
-        keyInput.placeholder = 'gsk_...';
-        instructions.innerHTML = '<strong>🚀 Groq (Fastest)</strong><br>1. Get free key: <a href="https://console.groq.com/keys" target="_blank" style="color:#a855f7">console.groq.com/keys</a><br>2. Model: Llama 3.3 70B<br>3. Free: 30 requests/min<br>4. Works in browsers!';
-    } else if (aiProvider === 'cohere') {
-        keyInput.style.display = 'block';
-        saveBtn.style.display = 'block';
-        keyInput.placeholder = 'co_...';
-        instructions.innerHTML = '<strong>💬 Cohere</strong><br>1. Get free key: <a href="https://dashboard.cohere.com/api-keys" target="_blank" style="color:#a855f7">dashboard.cohere.com/api-keys</a><br>2. Model: Command R<br>3. Free tier available<br>4. Works in browsers!';
-    }
-}
-
+// API Functions
 function saveApiKey() {
     const input = document.getElementById('apiKeyInput');
     apiKey = input.value.trim();
     
-    if (aiProvider === 'none') {
-        useRealAI = false;
-        document.getElementById('apiStatus').classList.remove('active');
-        document.getElementById('apiStatusText').textContent = 'Using basic responses';
-        return;
-    }
-    
-    if (apiKey) {
+    if (apiKey && apiKey.startsWith('gsk_')) {
         useRealAI = true;
         document.getElementById('apiStatus').classList.add('active');
-        document.getElementById('apiStatusText').textContent = 'AI Connected ✓';
-        console.log('✅ API Key saved for', aiProvider);
-    } else {
+        document.getElementById('apiStatusText').textContent = 'Groq AI Connected ✓';
+        console.log('✅ Groq API Key saved successfully');
+    } else if (apiKey === '') {
         useRealAI = false;
+        apiKey = '';
         document.getElementById('apiStatus').classList.remove('active');
-        document.getElementById('apiStatusText').textContent = 'Enter API key';
+        document.getElementById('apiStatusText').textContent = 'Using basic responses';
+    } else {
+        alert('Invalid key format. Groq keys start with "gsk_"');
+        console.log('❌ Invalid key format');
     }
 }
 
@@ -606,24 +588,35 @@ async function sendMessage() {
     messages.push({ role: 'user', content: message });
     input.value = '';
     renderMessages();
+    
     isTyping = true;
     
-    if (useRealAI && apiKey && aiProvider !== 'none') {
-        console.log('🤖 AI Mode:', aiProvider);
+    if (useRealAI && apiKey) {
+        console.log('🤖 Using Groq AI...');
         try {
-            const response = await getAIResponse(message);
+            const response = await getGroqResponse(message);
             messages.push({ role: 'assistant', content: response });
             isTyping = false;
             renderMessages();
         } catch (error) {
-            console.error('💥 AI Error:', error);
-            let errorMsg = '⚠️ AI Connection Failed\n\n' + error.message + '\n\nUsing basic responses:\n\n';
-            messages.push({ role: 'assistant', content: errorMsg + generateAdvice(message) });
+            console.error('❌ Groq API Error:', error);
+            let errorMsg = '⚠️ AI Connection Failed\n\n';
+            
+            if (error.message.includes('401') || error.message.includes('Invalid API Key')) {
+                errorMsg += 'Invalid API key. Please check your Groq API key in settings.\n\n';
+            } else if (error.message.includes('429')) {
+                errorMsg += 'Rate limit exceeded. Please wait a moment and try again.\n\n';
+            } else {
+                errorMsg += `Error: ${error.message}\n\n`;
+            }
+            
+            errorMsg += 'Using basic responses:\n\n' + generateAdvice(message);
+            messages.push({ role: 'assistant', content: errorMsg });
             isTyping = false;
             renderMessages();
         }
     } else {
-        console.log('📝 Basic mode');
+        console.log('📝 Using basic mode - no AI');
         setTimeout(() => {
             messages.push({ role: 'assistant', content: generateAdvice(message) });
             isTyping = false;
@@ -632,62 +625,71 @@ async function sendMessage() {
     }
 }
 
-async function getAIResponse(userMessage) {
+async function getGroqResponse(userMessage) {
     const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
     const remaining = income - totalExpenses;
     const savingsRate = income > 0 ? ((remaining / income) * 100).toFixed(1) : 0;
     
+    // Build expense breakdown
     const expenseBreakdown = Object.keys(categories).map(id => {
-        const total = expenses.filter(e => e.category === id).reduce((sum, e) => sum + e.amount, 0);
+        const total = expenses.filter(e => e.category === id).reduce((s, e) => s + e.amount, 0);
         return total > 0 ? `${categories[id].name}: ${total.toFixed(2)}` : null;
     }).filter(x => x).join(', ') || 'No expenses yet';
     
-    const context = `Budget: ${income.toFixed(2)}, Expenses: ${totalExpenses.toFixed(2)}, Remaining: ${remaining.toFixed(2)}, Savings: ${savingsRate}%, Breakdown: ${expenseBreakdown}. Question: ${userMessage}`;
+    // Build budget status
+    const categoryTotals = {};
+    expenses.forEach(e => {
+        categoryTotals[e.category] = (categoryTotals[e.category] || 0) + e.amount;
+    });
     
-    if (aiProvider === 'groq') {
-        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                model: 'llama-3.3-70b-versatile',
-                messages: [
-                    { role: 'system', content: 'You are a helpful financial advisor. Give specific advice under 150 words.' },
-                    { role: 'user', content: context }
-                ],
-                max_tokens: 200,
-                temperature: 0.7
-            })
-        });
-        
-        if (!response.ok) throw new Error(`Groq API error: ${response.status}`);
-        const data = await response.json();
-        return data.choices[0].message.content.trim();
-        
-    } else if (aiProvider === 'cohere') {
-        const response = await fetch('https://api.cohere.ai/v1/chat', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                message: context,
-                model: 'command-r',
-                preamble: 'You are a helpful financial advisor. Give specific advice under 150 words.',
-                max_tokens: 200,
-                temperature: 0.7
-            })
-        });
-        
-        if (!response.ok) throw new Error(`Cohere API error: ${response.status}`);
-        const data = await response.json();
-        return data.text.trim();
+    const budgetStatus = budgets.map(b => {
+        const spent = categoryTotals[b.category] || 0;
+        const percentage = ((spent / b.limit) * 100).toFixed(0);
+        return `${categories[b.category].name}: ${spent.toFixed(2)}/${b.limit.toFixed(2)} (${percentage}%)`;
+    }).join(', ') || 'No budget limits set';
+    
+    const systemPrompt = `You are a helpful financial advisor. Analyze the user's budget data and provide personalized advice.
+
+Budget Data:
+- Weekly Budget: ${income.toFixed(2)}
+- Total Expenses: ${totalExpenses.toFixed(2)}
+- Remaining: ${remaining.toFixed(2)}
+- Savings Rate: ${savingsRate}%
+- Expense Breakdown: ${expenseBreakdown}
+- Budget Limits: ${budgetStatus}
+
+Provide specific, actionable financial advice based on their actual spending patterns. Keep your response concise (under 200 words) and friendly. Use their actual numbers in your advice.`;
+
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userMessage }
+            ],
+            temperature: 0.7,
+            max_tokens: 500,
+            top_p: 0.9
+        })
+    });
+    
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Groq API Error ${response.status}: ${errorText}`);
     }
     
-    return generateAdvice(userMessage);
+    const data = await response.json();
+    
+    if (data.choices && data.choices[0] && data.choices[0].message) {
+        return data.choices[0].message.content.trim();
+    }
+    
+    throw new Error('Invalid response from Groq API');
 }
 
 function generateAdvice(question) {
@@ -696,17 +698,17 @@ function generateAdvice(question) {
     const remaining = income - totalExpenses;
     const savingsRate = income > 0 ? ((remaining / income) * 100).toFixed(1) : 0;
     
-    if (lowerQ.includes('save') || lowerQ.includes('saving')) {
+    if (lowerQ.includes('save')) {
         if (savingsRate < 10) {
-            return `Your savings rate is ${savingsRate}%. Experts recommend 20%+!\n\n• Reduce top spending by 10-15%\n• Auto-save transfers\n• 50/30/20 rule`;
+            return `Your savings rate is ${savingsRate}%. Experts recommend 20%+!\n\n💡 Tips:\n• Reduce top spending by 10-15%\n• Set up auto-save transfers\n• Follow 50/30/20 rule (needs/wants/savings)`;
         }
         if (savingsRate >= 20) {
-            return `Excellent! ${savingsRate}% savings! 🎉\n\n• Invest for growth\n• 3-6 month emergency fund\n• Retirement accounts`;
+            return `Excellent! ${savingsRate}% savings! 🎉\n\n💡 Next steps:\n• Invest for growth\n• Build 3-6 month emergency fund\n• Maximize retirement accounts`;
         }
-        return `${savingsRate}% is good! To reach 20%:\n\n• Cut one discretionary expense\n• Pay yourself first\n• Track daily spending`;
+        return `${savingsRate}% is good! To reach 20%:\n\n💡 Tips:\n• Cut one discretionary expense\n• Pay yourself first\n• Track daily spending\n• Review weekly`;
     }
     
-    if (lowerQ.includes('spend') || lowerQ.includes('budget') || lowerQ.includes('too much')) {
+    if (lowerQ.includes('spend') || lowerQ.includes('budget')) {
         const categoryTotals = {};
         expenses.forEach(e => {
             categoryTotals[e.category] = (categoryTotals[e.category] || 0) + e.amount;
@@ -720,26 +722,22 @@ function generateAdvice(question) {
         
         if (overBudget.length > 0) {
             const names = overBudget.map(id => categories[id].name).join(', ');
-            return `⚠️ Over budget in: ${names}\n\nActions:\n• Review recent purchases\n• Set realistic limits\n• 24-hour rule\n• Find alternatives`;
+            return `⚠️ Over budget in: ${names}\n\n💡 Tips:\n• Review recent purchases\n• Set realistic limits\n• Use 24-hour rule for purchases\n• Find cheaper alternatives`;
         }
         
         const highest = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0];
         if (highest) {
-            return `Top spending: ${categories[highest[0]].name} at ${highest[1].toFixed(2)}\n\n• Set a budget\n• Track purchases\n• Find cheaper options`;
+            return `Top spending: ${categories[highest[0]].name} at ${highest[1].toFixed(2)}\n\n💡 Tips:\n• Set a specific budget\n• Track each purchase\n• Look for cheaper options\n• Plan ahead`;
         }
     }
     
     if (lowerQ.includes('emergency') || lowerQ.includes('fund')) {
         const monthlyExpenses = totalExpenses || income * 0.5;
         const target = (monthlyExpenses * 3).toFixed(2);
-        return `Emergency fund: 3-6 months expenses\n\nTarget: ${target}\n\n• High-yield savings\n• Build gradually\n• True emergencies only`;
+        return `Emergency fund: 3-6 months of expenses\n\nYour target: ${target}\n\n💡 Tips:\n• High-yield savings account\n• Build gradually (10% each month)\n• Only for true emergencies\n• Keep it separate from daily spending`;
     }
     
-    if (lowerQ.includes('invest') || lowerQ.includes('stock') || lowerQ.includes('crypto')) {
-        return `Investment basics:\n\n✅ First:\n• 3-6 month emergency fund\n• Pay off high-interest debt\n• Max 401k match\n\n📊 Then:\n• Index funds (diversified)\n• Retirement accounts\n• Start small, consistent`;
-    }
-    
-    return `Budget Overview:\n\n💰 Income: ${income.toFixed(2)}\n💸 Expenses: ${totalExpenses.toFixed(2)}\n📊 Savings: ${savingsRate}%\n\nTips:\n• Aim for 20% savings\n• Review weekly\n• 3-6 month emergency fund\n• Track all purchases`;
+    return `Budget overview:\n\n📊 Stats:\n• Income: ${income.toFixed(2)}\n• Expenses: ${totalExpenses.toFixed(2)}\n• Savings: ${savingsRate}%\n\n💡 Tips:\n• Aim for 20% savings rate\n• Review spending weekly\n• Build 3-6 month emergency fund\n• Track ALL purchases!`;
 }
 
 function renderMessages() {
@@ -779,7 +777,6 @@ function renderMessages() {
 }
 
 // Initialize
-updateProviderUI();
 updateDisplay();
     </script>
 </body>
