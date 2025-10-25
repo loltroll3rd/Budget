@@ -338,7 +338,7 @@
                 <label style="font-size: 0.875rem; color: #d1d5db; margin-bottom: 0.5rem; display: block;">
                     Hugging Face API Key
                 </label>
-                <input type="password" id="apiKeyInput" class="api-input" placeholder="hf_... or sk_...">
+                <input type="password" id="apiKeyInput" class="api-input" placeholder="hf_...">
                 <button onclick="saveApiKey()" style="width: 100%; padding: 0.5rem; font-size: 0.875rem;">Save Key</button>
                 <div class="api-toggle">
                     <span class="api-status" id="apiStatus"></span>
@@ -346,7 +346,7 @@
                 </div>
                 <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem;">
                     <strong>⚠️ AI Feature Status:</strong><br>
-                    • Model: <strong>Qwen3-VL-8B-Instruct</strong> (Advanced AI)<br>
+                    • Model: <strong>Qwen/Qwen2.5-72B-Instruct</strong> (Advanced AI)<br>
                     • Works on: GitHub Pages, local files, web servers<br>
                     • Does NOT work in Claude.ai artifacts (sandbox blocked)<br>
                     • Basic advisor works everywhere without API
@@ -380,39 +380,203 @@
         </div>
     </div>
     <script>
-let income=0,expenses=[],budgets=[],messages=[],isTyping=!1,apiKey='',useRealAI=!1;
-const cat={food:{name:'Food & Dining',color:'color-orange'},transport:{name:'Transportation',color:'color-blue'},entertainment:{name:'Entertainment',color:'color-purple'},shopping:{name:'Shopping',color:'color-pink'},bills:{name:'Bills & Utilities',color:'color-red'},health:{name:'Health',color:'color-green'},other:{name:'Other',color:'color-gray'}};
+let income = 0;
+let expenses = [];
+let budgets = [];
+let messages = [];
+let isTyping = false;
+let apiKey = '';
+let useRealAI = false;
 
-document.getElementById('income').addEventListener('input',e=>{income=parseFloat(e.target.value)||0;updateDisplay()});
-document.getElementById('chatButton').addEventListener('click',()=>document.getElementById('chatModal').classList.remove('hidden'));
-document.getElementById('chatInput').addEventListener('keypress',e=>{if(e.key==='Enter')sendMessage()});
+const categories = {
+    food: { name: 'Food & Dining', color: 'color-orange' },
+    transport: { name: 'Transportation', color: 'color-blue' },
+    entertainment: { name: 'Entertainment', color: 'color-purple' },
+    shopping: { name: 'Shopping', color: 'color-pink' },
+    bills: { name: 'Bills & Utilities', color: 'color-red' },
+    health: { name: 'Health', color: 'color-green' },
+    other: { name: 'Other', color: 'color-gray' }
+};
 
-function closeChat(){document.getElementById('chatModal').classList.add('hidden')}
-function toggleSettings(){document.getElementById('apiSettings').classList.toggle('hidden')}
-function toggleAddExpense(){document.getElementById('addExpenseForm').classList.toggle('hidden')}
-function toggleAddBudget(){document.getElementById('addBudgetForm').classList.toggle('hidden')}
+document.getElementById('income').addEventListener('input', (e) => {
+    income = parseFloat(e.target.value) || 0;
+    updateDisplay();
+});
 
-function addExpense(){const n=document.getElementById('expenseName').value,a=document.getElementById('expenseAmount').value,c=document.getElementById('expenseCategory').value;if(n&&a){expenses.push({id:Date.now(),name:n,amount:parseFloat(a),category:c,date:new Date().toLocaleDateString()});document.getElementById('expenseName').value='';document.getElementById('expenseAmount').value='';toggleAddExpense();updateDisplay()}}
+document.getElementById('chatButton').addEventListener('click', () => {
+    document.getElementById('chatModal').classList.remove('hidden');
+});
 
-function addBudget(){const c=document.getElementById('budgetCategory').value,l=document.getElementById('budgetLimit').value;if(l){const ex=budgets.findIndex(b=>b.category===c);if(ex>=0)budgets[ex].limit=parseFloat(l);else budgets.push({category:c,limit:parseFloat(l)});document.getElementById('budgetLimit').value='';toggleAddBudget();updateDisplay()}}
+document.getElementById('chatInput').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') sendMessage();
+});
 
-function deleteExpense(id){expenses=expenses.filter(e=>e.id!==id);updateDisplay()}
+function closeChat() {
+    document.getElementById('chatModal').classList.add('hidden');
+}
 
-function updateDisplay(){const tExp=expenses.reduce((s,e)=>s+e.amount,0),rem=income-tExp,sr=income>0?((rem/income)*100).toFixed(1):0;document.getElementById('totalIncome').textContent=`$${income.toFixed(2)}`;document.getElementById('totalExpenses').textContent=`$${tExp.toFixed(2)}`;document.getElementById('remaining').textContent=`$${rem.toFixed(2)}`;document.getElementById('savingsRate').textContent=`${sr}% savings rate`;document.getElementById('remainingCard').className=rem>=0?'stat-card remaining':'stat-card remaining negative';const eList=document.getElementById('expensesList');if(expenses.length===0)eList.innerHTML='<div class="empty-state">No expenses yet</div>';else eList.innerHTML=expenses.map(e=>{const c=cat[e.category];return`<div class="expense-item"><div class="expense-header"><div class="expense-info"><div class="expense-dot ${c.color}"></div><div><div class="expense-name">${e.name}</div><div class="expense-details">${c.name} • ${e.date}</div></div></div><div class="expense-actions"><div class="expense-amount">$${e.amount.toFixed(2)}</div><button class="delete-btn" onclick="deleteExpense(${e.id})">✕</button></div></div></div>`}).join('');const cTot={};expenses.forEach(e=>{cTot[e.category]=(cTot[e.category]||0)+e.amount});const bList=document.getElementById('budgetsList'),aB=budgets.filter(b=>{const sp=cTot[b.category]||0;return sp>0||b.limit>0});if(aB.length===0)bList.innerHTML='<div class="empty-state">No budget limits set</div>';else bList.innerHTML=aB.map(b=>{const c=cat[b.category],sp=cTot[b.category]||0,pct=(sp/b.limit)*100,col=pct>90?'red':pct>70?'yellow':'green';return`<div class="budget-item"><div class="budget-header"><div class="budget-name"><div class="budget-dot ${c.color}"></div><span>${c.name}</span></div><div class="budget-amount">$${sp.toFixed(2)} / $${b.limit.toFixed(2)}</div></div><div class="progress-bar"><div class="progress-fill ${col}" style="width:${Math.min(pct,100)}%"></div></div></div>`}).join('')}
+function toggleSettings() {
+    document.getElementById('apiSettings').classList.toggle('hidden');
+}
 
-function saveApiKey(){const inp=document.getElementById('apiKeyInput');apiKey=inp.value.trim();if(apiKey&&(apiKey.startsWith('hf_')||apiKey.startsWith('sk_'))){useRealAI=!0;document.getElementById('apiStatus').classList.add('active');document.getElementById('apiStatusText').textContent='Key Saved ✓';console.log('✅ API Key saved');console.log('Key format:',apiKey.substring(0,3)+'...',apiKey.length,'chars');console.log('⚠️ Note: AI only works outside Claude.ai artifacts (GitHub Pages, local files, etc.)')}else if(apiKey===''){useRealAI=!1;apiKey='';document.getElementById('apiStatus').classList.remove('active');document.getElementById('apiStatusText').textContent='Using basic responses'}else console.log('❌ Invalid key format')}
+function toggleAddExpense() {
+    document.getElementById('addExpenseForm').classList.toggle('hidden');
+}
 
-async function testAPIConnection(){try{const response=await fetch('https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2',{method:'POST',headers:{'Authorization':`Bearer ${apiKey}`,'Content-Type':'application/json'},body:JSON.stringify({inputs:'Test connection',parameters:{max_new_tokens:10}})});if(response.ok){document.getElementById('apiStatusText').textContent='AI Connected ✓';console.log('✅ Hugging Face API connected successfully')}else{document.getElementById('apiStatusText').textContent='Connection Failed';console.error('API test failed:',response.status)}}catch(error){document.getElementById('apiStatusText').textContent='Connection Error';console.error('API test error:',error)}}
+function toggleAddBudget() {
+    document.getElementById('addBudgetForm').classList.toggle('hidden');
+}
 
-function askQuestion(q){document.getElementById('chatInput').value=q;sendMessage()}
+function addExpense() {
+    const name = document.getElementById('expenseName').value;
+    const amount = document.getElementById('expenseAmount').value;
+    const category = document.getElementById('expenseCategory').value;
+    
+    if (name && amount) {
+        expenses.push({
+            id: Date.now(),
+            name: name,
+            amount: parseFloat(amount),
+            category: category,
+            date: new Date().toLocaleDateString()
+        });
+        
+        document.getElementById('expenseName').value = '';
+        document.getElementById('expenseAmount').value = '';
+        toggleAddExpense();
+        updateDisplay();
+    }
+}
 
-async function sendMessage(){const inp=document.getElementById('chatInput'),msg=inp.value.trim();if(!msg||isTyping)return;messages.push({role:'user',content:msg});inp.value='';renderMessages();isTyping=!0;if(useRealAI&&apiKey){console.log('🤖 AI Mode enabled, calling Qwen3-VL-8B-Instruct...');try{const response=await getAIResponse(msg);messages.push({role:'assistant',content:response});isTyping=!1;renderMessages()}catch(error){console.error('💥 Fatal AI Error:',error);console.error('Error details:',{name:error.name,message:error.message,stack:error.stack});let errorMsg='⚠️ AI Connection Failed\n\n';if(error.message.includes('Failed to fetch')||error.name==='TypeError'){errorMsg+='Cannot connect to Hugging Face API.\n\nPossible causes:\n• GitHub Pages blocks external APIs (CORS)\n• Browser security settings\n• Network/firewall restrictions\n\n💡 Solution: Download this HTML file and open locally in your browser.\n\nUsing basic responses:\n\n'}else{errorMsg+=`Error: ${error.message}\n\nUsing basic responses:\n\n`}messages.push({role:'assistant',content:errorMsg+generateAdvice(msg)});isTyping=!1;renderMessages()}}else{console.log('📝 Basic mode - no API');setTimeout(()=>{messages.push({role:'assistant',content:generateAdvice(msg)});isTyping=!1;renderMessages()},800)}}
+function addBudget() {
+    const category = document.getElementById('budgetCategory').value;
+    const limit = document.getElementById('budgetLimit').value;
+    
+    if (limit) {
+        const existingIndex = budgets.findIndex(b => b.category === category);
+        if (existingIndex >= 0) {
+            budgets[existingIndex].limit = parseFloat(limit);
+        } else {
+            budgets.push({ category: category, limit: parseFloat(limit) });
+        }
+        
+        document.getElementById('budgetLimit').value = '';
+        toggleAddBudget();
+        updateDisplay();
+    }
+}
 
-async function getAIResponse(userMessage){const tE=expenses.reduce((s,e)=>s+e.amount,0),rem=income-tE,sr=income>0?((rem/income)*100).toFixed(1):0;const expenseBreakdown=Object.keys(cat).map(id=>{const total=expenses.filter(e=>e.category===id).reduce((s,e)=>s+e.amount,0);return total>0?`${cat[id].name}: ${total.toFixed(2)}`:null}).filter(x=>x).join(', ')||'No expenses yet';const context=`You are a financial advisor. User's Budget Data:\n- Weekly Budget: ${income.toFixed(2)}\n- Total Expenses: ${tE.toFixed(2)}\n- Remaining: ${rem.toFixed(2)}\n- Savings Rate: ${sr}%\n- Expense Breakdown: ${expenseBreakdown}\n\nUser Question: ${userMessage}\n\nProvide helpful, specific financial advice based on their actual data. Keep response under 150 words.`;const response=await fetch('https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2',{method:'POST',headers:{'Authorization':`Bearer ${apiKey}`,'Content-Type':'application/json'},body:JSON.stringify({inputs:context,parameters:{max_new_tokens:250,temperature:0.7,top_p:0.95,return_full_text:false}})});if(!response.ok){const errorText=await response.text();throw new Error(`API Error: ${response.status} - ${errorText}`)}const data=await response.json();if(Array.isArray(data)&&data[0]?.generated_text){let aiText=data[0].generated_text.trim();aiText=aiText.replace(context,'').trim();const lines=aiText.split('\n').filter(line=>!line.includes('User Question')&&!line.includes('Weekly Budget')&&!line.includes('Total Expenses'));return lines.join('\n').trim()||generateAdvice(userMessage)}return generateAdvice(userMessage)}
+function deleteExpense(id) {
+    expenses = expenses.filter(e => e.id !== id);
+    updateDisplay();
+}
 
-function generateAdvice(q){const lq=q.toLowerCase(),tE=expenses.reduce((s,e)=>s+e.amount,0),rem=income-tE,sr=income>0?((rem/income)*100).toFixed(1):0;if(lq.includes('save')){if(sr<10)return`Your savings rate is ${sr}%. Experts recommend 20%+!\n\n• Reduce top spending by 10-15%\n• Auto-save transfers\n• 50/30/20 rule`;if(sr>=20)return`Excellent! ${sr}% savings! 🎉\n\n• Invest for growth\n• 3-6 month emergency fund\n• Retirement accounts`;return`${sr}% is good! To reach 20%:\n\n• Cut one discretionary expense\n• Pay yourself first\n• Track daily spending`}if(lq.includes('spend')||lq.includes('budget')){const cT={};expenses.forEach(e=>{cT[e.category]=(cT[e.category]||0)+e.amount});const oB=Object.keys(cat).filter(id=>{const b=budgets.find(x=>x.category===id),sp=cT[id]||0;return b&&(sp/b.limit)>1});if(oB.length>0){const n=oB.map(id=>cat[id].name).join(', ');return`⚠️ Over budget: ${n}\n\n• Review recent purchases\n• Set realistic limits\n• 24-hour rule\n• Find alternatives`}const hi=Object.entries(cT).sort((a,b)=>b[1]-a[1])[0];if(hi)return`Top spending: ${cat[hi[0]].name} at $${hi[1].toFixed(2)}\n\n• Set a budget\n• Track purchases\n• Find cheaper options`}if(lq.includes('emergency')||lq.includes('fund')){const mE=tE||income*0.5,tgt=(mE*3).toFixed(2);return`Emergency fund: 3-6 months expenses\n\nTarget: $${tgt}\n\n• High-yield savings\n• Build gradually\n• True emergencies only`}return`Budget overview:\n\n• Income: $${income.toFixed(2)}\n• Expenses: $${tE.toFixed(2)}\n• Savings: ${sr}%\n\nTips:\n• Aim for 20% savings\n• Review weekly\n• 3-6 month emergency fund\n• Track all purchases!`}
+function updateDisplay() {
+    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+    const remaining = income - totalExpenses;
+    const savingsRate = income > 0 ? ((remaining / income) * 100).toFixed(1) : 0;
+    
+    document.getElementById('totalIncome').textContent = `$${income.toFixed(2)}`;
+    document.getElementById('totalExpenses').textContent = `$${totalExpenses.toFixed(2)}`;
+    document.getElementById('remaining').textContent = `$${remaining.toFixed(2)}`;
+    document.getElementById('savingsRate').textContent = `${savingsRate}% savings rate`;
+    
+    const remainingCard = document.getElementById('remainingCard');
+    remainingCard.className = remaining >= 0 ? 'stat-card remaining' : 'stat-card remaining negative';
+    
+    const expensesList = document.getElementById('expensesList');
+    if (expenses.length === 0) {
+        expensesList.innerHTML = '<div class="empty-state">No expenses yet</div>';
+    } else {
+        expensesList.innerHTML = expenses.map(expense => {
+            const cat = categories[expense.category];
+            return `
+                <div class="expense-item">
+                    <div class="expense-header">
+                        <div class="expense-info">
+                            <div class="expense-dot ${cat.color}"></div>
+                            <div>
+                                <div class="expense-name">${expense.name}</div>
+                                <div class="expense-details">${cat.name} • ${expense.date}</div>
+                            </div>
+                        </div>
+                        <div class="expense-actions">
+                            <div class="expense-amount">$${expense.amount.toFixed(2)}</div>
+                            <button class="delete-btn" onclick="deleteExpense(${expense.id})">✕</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    const categoryTotals = {};
+    expenses.forEach(e => {
+        categoryTotals[e.category] = (categoryTotals[e.category] || 0) + e.amount;
+    });
+    
+    const budgetsList = document.getElementById('budgetsList');
+    const activeBudgets = budgets.filter(b => {
+        const spent = categoryTotals[b.category] || 0;
+        return spent > 0 || b.limit > 0;
+    });
+    
+    if (activeBudgets.length === 0) {
+        budgetsList.innerHTML = '<div class="empty-state">No budget limits set</div>';
+    } else {
+        budgetsList.innerHTML = activeBudgets.map(budget => {
+            const cat = categories[budget.category];
+            const spent = categoryTotals[budget.category] || 0;
+            const percentage = (spent / budget.limit) * 100;
+            const color = percentage > 90 ? 'red' : percentage > 70 ? 'yellow' : 'green';
+            
+            return `
+                <div class="budget-item">
+                    <div class="budget-header">
+                        <div class="budget-name">
+                            <div class="budget-dot ${cat.color}"></div>
+                            <span>${cat.name}</span>
+                        </div>
+                        <div class="budget-amount">$${spent.toFixed(2)} / $${budget.limit.toFixed(2)}</div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill ${color}" style="width: ${Math.min(percentage, 100)}%"></div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+}
 
-function renderMessages(){const c=document.getElementById('chatMessages');if(messages.length===0)c.innerHTML='<div class="chat-empty"><p>👋 Hi! I\'m your AI financial advisor.</p><p>Ask me anything about your budget!</p><button class="suggestion-btn" onclick="askQuestion(\'How can I save more money?\')">💰 How can I save more?</button><button class="suggestion-btn" onclick="askQuestion(\'Am I spending too much?\')">📊 Am I overspending?</button><button class="suggestion-btn" onclick="askQuestion(\'Emergency fund tips?\')">🆘 Emergency fund?</button></div>';else{c.innerHTML=messages.map(m=>`<div class="message ${m.role}"><div class="message-content">${m.content}</div></div>`).join('');if(isTyping)c.innerHTML+='<div class="message assistant"><div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>';c.scrollTop=c.scrollHeight}}
-    </script>
-</body>
-</html>
+function saveApiKey() {
+    const input = document.getElementById('apiKeyInput');
+    apiKey = input.value.trim();
+    
+    if (apiKey && apiKey.startsWith('hf_')) {
+        useRealAI = true;
+        document.getElementById('apiStatus').classList.add('active');
+        document.getElementById('apiStatusText').textContent = 'Key Saved ✓';
+        console.log('✅ API Key saved successfully');
+        console.log('⚠️ Note: AI only works outside Claude.ai artifacts (GitHub Pages, local files, etc.)');
+    } else if (apiKey === '') {
+        useRealAI = false;
+        apiKey = '';
+        document.getElementById('apiStatus').classList.remove('active');
+        document.getElementById('apiStatusText').textContent = 'Using basic responses';
+    } else {
+        console.log('❌ Invalid key format. Must start with hf_');
+    }
+}
+
+function askQuestion(question) {
+    document.getElementById('chatInput').value = question;
+    sendMessage();
+}
+
+async function sendMessage() {
+    const input = document.getElementById('chatInput');
+    const message = input.value.trim();
+    
+    if (!message || isTyping) return;
+    
+    messages.push({ role: 'user', content: message
