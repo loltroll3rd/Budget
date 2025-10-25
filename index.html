@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Budget Tracker</title>
     <style>
+        :root {
+            --primary-btn-hover: #7e22ce;
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
@@ -89,7 +92,7 @@
             font-size: 1rem;
             transition: background 0.2s;
         }
-        button:hover { background: #7e22ce; }
+        button:hover { background: var(--primary-btn-hover); }
         .form-section {
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.1);
@@ -152,8 +155,9 @@
             align-items: center;
             justify-content: center;
             z-index: 1000;
+            transition: all 0.2s;
         }
-        .chat-button:hover { background: #7e22ce; transform: scale(1.1); }
+        .chat-button:hover { background: var(--primary-btn-hover); transform: scale(1.1); }
         .chat-modal {
             position: fixed;
             inset: 0;
@@ -213,7 +217,7 @@
             border: none;
             min-width: auto;
         }
-        .settings-btn:hover, .close-btn:hover { color: white !important; }
+        .settings-btn:hover, .close-btn:hover { color: white !important; background: none !important; }
         .chat-messages { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 1rem; }
         .chat-empty { text-align: center; color: #9ca3af; padding: 2rem 1rem; }
         .chat-empty p { margin-bottom: 1.5rem; }
@@ -359,6 +363,22 @@
                 <p style="font-size: 0.7rem; color: #9ca3af; margin-top: 0.25rem;">
                     💡 Free tier: 30 requests/min, instant responses
                 </p>
+                
+                <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); margin-top: 1rem; padding-top: 1rem;">
+                    <label style="font-size: 0.875rem; color: #d1d5db; margin-bottom: 0.5rem; display: block;">
+                        🎨 Theme
+                    </label>
+                    <select id="themeSelect" class="api-input" style="margin-bottom: 0;">
+                        <option value="cyberpunk">🌆 Cyberpunk (Default)</option>
+                        <option value="sunset">🌅 Sunset Vibes</option>
+                        <option value="forest">🌲 Forest Green</option>
+                        <option value="ocean">🌊 Ocean Blue</option>
+                        <option value="lavender">💜 Lavender Dreams</option>
+                        <option value="noir">🖤 Dark Noir</option>
+                        <option value="mint">🍃 Fresh Mint</option>
+                        <option value="rose">🌹 Rose Gold</option>
+                    </select>
+                </div>
             </div>
             <div class="chat-messages" id="chatMessages">
                 <div class="chat-empty">
@@ -396,41 +416,220 @@ const categories = {
     other: { name: 'Other', color: 'color-gray' }
 };
 
+// Theme System
+const themes = {
+    cyberpunk: {
+        name: 'Cyberpunk',
+        font: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif',
+        background: 'linear-gradient(135deg, #0f172a 0%, #581c87 50%, #0f172a 100%)',
+        titleGradient: 'linear-gradient(to right, #c084fc, #ec4899)',
+        cardBg: 'rgba(255, 255, 255, 0.1)',
+        primaryBtn: '#9333ea',
+        primaryBtnHover: '#7e22ce'
+    },
+    sunset: {
+        name: 'Sunset Vibes',
+        font: 'Georgia, "Times New Roman", serif',
+        background: 'linear-gradient(135deg, #1e1b4b 0%, #be123c 40%, #f97316 100%)',
+        titleGradient: 'linear-gradient(to right, #fbbf24, #fb923c)',
+        cardBg: 'rgba(251, 146, 60, 0.15)',
+        primaryBtn: '#ea580c',
+        primaryBtnHover: '#c2410c'
+    },
+    forest: {
+        name: 'Forest Green',
+        font: '"Courier New", Courier, monospace',
+        background: 'linear-gradient(135deg, #064e3b 0%, #14532d 50%, #052e16 100%)',
+        titleGradient: 'linear-gradient(to right, #34d399, #a3e635)',
+        cardBg: 'rgba(52, 211, 153, 0.12)',
+        primaryBtn: '#059669',
+        primaryBtnHover: '#047857'
+    },
+    ocean: {
+        name: 'Ocean Blue',
+        font: '"Trebuchet MS", "Lucida Sans Unicode", sans-serif',
+        background: 'linear-gradient(135deg, #082f49 0%, #0c4a6e 40%, #164e63 100%)',
+        titleGradient: 'linear-gradient(to right, #38bdf8, #06b6d4)',
+        cardBg: 'rgba(56, 189, 248, 0.12)',
+        primaryBtn: '#0284c7',
+        primaryBtnHover: '#0369a1'
+    },
+    lavender: {
+        name: 'Lavender Dreams',
+        font: '"Comic Sans MS", cursive, sans-serif',
+        background: 'linear-gradient(135deg, #2e1065 0%, #581c87 40%, #7e22ce 100%)',
+        titleGradient: 'linear-gradient(to right, #e9d5ff, #f0abfc)',
+        cardBg: 'rgba(233, 213, 255, 0.15)',
+        primaryBtn: '#9333ea',
+        primaryBtnHover: '#7e22ce'
+    },
+    noir: {
+        name: 'Dark Noir',
+        font: '"Lucida Console", Monaco, monospace',
+        background: 'linear-gradient(135deg, #000000 0%, #1c1917 50%, #0a0a0a 100%)',
+        titleGradient: 'linear-gradient(to right, #d4d4d4, #a3a3a3)',
+        cardBg: 'rgba(255, 255, 255, 0.05)',
+        primaryBtn: '#404040',
+        primaryBtnHover: '#525252'
+    },
+    mint: {
+        name: 'Fresh Mint',
+        font: '"Arial Rounded MT Bold", sans-serif',
+        background: 'linear-gradient(135deg, #0f766e 0%, #14b8a6 50%, #5eead4 100%)',
+        titleGradient: 'linear-gradient(to right, #5eead4, #2dd4bf)',
+        cardBg: 'rgba(94, 234, 212, 0.15)',
+        primaryBtn: '#14b8a6',
+        primaryBtnHover: '#0d9488'
+    },
+    rose: {
+        name: 'Rose Gold',
+        font: '"Palatino Linotype", "Book Antiqua", Palatino, serif',
+        background: 'linear-gradient(135deg, #4c0519 0%, #881337 40%, #be123c 100%)',
+        titleGradient: 'linear-gradient(to right, #fda4af, #fb7185)',
+        cardBg: 'rgba(253, 164, 175, 0.12)',
+        primaryBtn: '#e11d48',
+        primaryBtnHover: '#be123c'
+    }
+};
+
+function changeTheme(themeName) {
+    const theme = themes[themeName];
+    if (!theme) return;
+    
+    const body = document.body;
+    body.style.fontFamily = theme.font;
+    body.style.background = theme.background;
+    
+    const title = document.querySelector('.title');
+    if (title) {
+        title.style.background = theme.titleGradient;
+        title.style.webkitBackgroundClip = 'text';
+        title.style.backgroundClip = 'text';
+    }
+    
+    document.querySelectorAll('.card').forEach(card => {
+        card.style.background = theme.cardBg;
+    });
+    
+    document.querySelectorAll('.form-section').forEach(card => {
+        card.style.background = theme.cardBg.replace('0.1', '0.05');
+    });
+    
+    document.querySelectorAll('button:not(.delete-btn):not(.close-btn):not(.settings-btn):not(.suggestion-btn)').forEach(btn => {
+        btn.style.background = theme.primaryBtn;
+    });
+    
+    document.documentElement.style.setProperty('--primary-btn-hover', theme.primaryBtnHover);
+    
+    const chatBtn = document.querySelector('.chat-button');
+    if (chatBtn) chatBtn.style.background = theme.primaryBtn;
+    
+    try {
+        localStorage.setItem('budgetTheme', themeName);
+    } catch (e) {
+        console.log('Theme not saved (localStorage unavailable)');
+    }
+    
+    console.log(`🎨 Theme changed to: ${theme.name}`);
+}
+
 // Event Listeners
-document.getElementById('income').addEventListener('input', e => {
-    income = parseFloat(e.target.value) || 0;
+document.addEventListener('DOMContentLoaded', function() {
+    // Load saved theme
+    try {
+        const savedTheme = localStorage.getItem('budgetTheme') || 'cyberpunk';
+        const themeSelect = document.getElementById('themeSelect');
+        if (themeSelect) {
+            themeSelect.value = savedTheme;
+            themeSelect.addEventListener('change', function() {
+                changeTheme(this.value);
+            });
+            changeTheme(savedTheme);
+        }
+    } catch (e) {
+        console.log('Could not load saved theme');
+    }
+    
+    // Income input
+    const incomeInput = document.getElementById('income');
+    if (incomeInput) {
+        incomeInput.addEventListener('input', function(e) {
+            income = parseFloat(e.target.value) || 0;
+            updateDisplay();
+        });
+    }
+    
+    // Chat button
+    const chatButton = document.getElementById('chatButton');
+    if (chatButton) {
+        chatButton.addEventListener('click', function() {
+            const modal = document.getElementById('chatModal');
+            if (modal) modal.classList.remove('hidden');
+        });
+    }
+    
+    // Chat input enter key
+    const chatInput = document.getElementById('chatInput');
+    if (chatInput) {
+        chatInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') sendMessage();
+        });
+    }
+    
+    // Close on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('chatModal');
+            if (modal && !modal.classList.contains('hidden')) {
+                closeChat();
+            }
+        }
+    });
+    
+    // Close on backdrop click
+    const chatModal = document.getElementById('chatModal');
+    if (chatModal) {
+        chatModal.addEventListener('click', function(e) {
+            if (e.target === chatModal) {
+                closeChat();
+            }
+        });
+    }
+    
     updateDisplay();
-});
-
-document.getElementById('chatButton').addEventListener('click', () => {
-    document.getElementById('chatModal').classList.remove('hidden');
-});
-
-document.getElementById('chatInput').addEventListener('keypress', e => {
-    if (e.key === 'Enter') sendMessage();
 });
 
 // UI Functions
 function closeChat() {
-    document.getElementById('chatModal').classList.add('hidden');
+    const modal = document.getElementById('chatModal');
+    if (modal) modal.classList.add('hidden');
 }
 
 function toggleSettings() {
-    document.getElementById('apiSettings').classList.toggle('hidden');
+    const settings = document.getElementById('apiSettings');
+    if (settings) settings.classList.toggle('hidden');
 }
 
 function toggleAddExpense() {
-    document.getElementById('addExpenseForm').classList.toggle('hidden');
+    const form = document.getElementById('addExpenseForm');
+    if (form) form.classList.toggle('hidden');
 }
 
 function toggleAddBudget() {
-    document.getElementById('addBudgetForm').classList.toggle('hidden');
+    const form = document.getElementById('addBudgetForm');
+    if (form) form.classList.toggle('hidden');
 }
 
 function addExpense() {
-    const name = document.getElementById('expenseName').value.trim();
-    const amount = document.getElementById('expenseAmount').value;
-    const category = document.getElementById('expenseCategory').value;
+    const nameInput = document.getElementById('expenseName');
+    const amountInput = document.getElementById('expenseAmount');
+    const categorySelect = document.getElementById('expenseCategory');
+    
+    if (!nameInput || !amountInput || !categorySelect) return;
+    
+    const name = nameInput.value.trim();
+    const amount = amountInput.value;
+    const category = categorySelect.value;
     
     if (name && amount) {
         expenses.push({
@@ -441,16 +640,21 @@ function addExpense() {
             date: new Date().toLocaleDateString()
         });
         
-        document.getElementById('expenseName').value = '';
-        document.getElementById('expenseAmount').value = '';
+        nameInput.value = '';
+        amountInput.value = '';
         toggleAddExpense();
         updateDisplay();
     }
 }
 
 function addBudget() {
-    const category = document.getElementById('budgetCategory').value;
-    const limit = document.getElementById('budgetLimit').value;
+    const categorySelect = document.getElementById('budgetCategory');
+    const limitInput = document.getElementById('budgetLimit');
+    
+    if (!categorySelect || !limitInput) return;
+    
+    const category = categorySelect.value;
+    const limit = limitInput.value;
     
     if (limit) {
         const existingIndex = budgets.findIndex(b => b.category === category);
@@ -463,7 +667,7 @@ function addBudget() {
             });
         }
         
-        document.getElementById('budgetLimit').value = '';
+        limitInput.value = '';
         toggleAddBudget();
         updateDisplay();
     }
@@ -479,39 +683,48 @@ function updateDisplay() {
     const remaining = income - totalExpenses;
     const savingsRate = income > 0 ? ((remaining / income) * 100).toFixed(1) : 0;
     
-    document.getElementById('totalIncome').textContent = `$${income.toFixed(2)}`;
-    document.getElementById('totalExpenses').textContent = `$${totalExpenses.toFixed(2)}`;
-    document.getElementById('remaining').textContent = `$${remaining.toFixed(2)}`;
-    document.getElementById('savingsRate').textContent = `${savingsRate}% savings rate`;
-    
+    const totalIncomeEl = document.getElementById('totalIncome');
+    const totalExpensesEl = document.getElementById('totalExpenses');
+    const remainingEl = document.getElementById('remaining');
+    const savingsRateEl = document.getElementById('savingsRate');
     const remainingCard = document.getElementById('remainingCard');
-    remainingCard.className = remaining >= 0 ? 'stat-card remaining' : 'stat-card remaining negative';
+    
+    if (totalIncomeEl) totalIncomeEl.textContent = `${income.toFixed(2)}`;
+    if (totalExpensesEl) totalExpensesEl.textContent = `${totalExpenses.toFixed(2)}`;
+    if (remainingEl) remainingEl.textContent = `${remaining.toFixed(2)}`;
+    if (savingsRateEl) savingsRateEl.textContent = `${savingsRate}% savings rate`;
+    
+    if (remainingCard) {
+        remainingCard.className = remaining >= 0 ? 'stat-card remaining' : 'stat-card remaining negative';
+    }
     
     // Update expenses list
     const expensesList = document.getElementById('expensesList');
-    if (expenses.length === 0) {
-        expensesList.innerHTML = '<div class="empty-state">No expenses yet</div>';
-    } else {
-        expensesList.innerHTML = expenses.map(expense => {
-            const cat = categories[expense.category];
-            return `
-                <div class="expense-item">
-                    <div class="expense-header">
-                        <div class="expense-info">
-                            <div class="expense-dot ${cat.color}"></div>
-                            <div>
-                                <div class="expense-name">${expense.name}</div>
-                                <div class="expense-details">${cat.name} • ${expense.date}</div>
+    if (expensesList) {
+        if (expenses.length === 0) {
+            expensesList.innerHTML = '<div class="empty-state">No expenses yet</div>';
+        } else {
+            expensesList.innerHTML = expenses.map(expense => {
+                const cat = categories[expense.category];
+                return `
+                    <div class="expense-item">
+                        <div class="expense-header">
+                            <div class="expense-info">
+                                <div class="expense-dot ${cat.color}"></div>
+                                <div>
+                                    <div class="expense-name">${expense.name}</div>
+                                    <div class="expense-details">${cat.name} • ${expense.date}</div>
+                                </div>
+                            </div>
+                            <div class="expense-actions">
+                                <div class="expense-amount">${expense.amount.toFixed(2)}</div>
+                                <button class="delete-btn" onclick="deleteExpense(${expense.id})">✕</button>
                             </div>
                         </div>
-                        <div class="expense-actions">
-                            <div class="expense-amount">$${expense.amount.toFixed(2)}</div>
-                            <button class="delete-btn" onclick="deleteExpense(${expense.id})">✕</button>
-                        </div>
                     </div>
-                </div>
-            `;
-        }).join('');
+                `;
+            }).join('');
+        }
     }
     
     // Update budgets list
@@ -521,53 +734,60 @@ function updateDisplay() {
     });
     
     const budgetsList = document.getElementById('budgetsList');
-    const activeBudgets = budgets.filter(b => {
-        const spent = categoryTotals[b.category] || 0;
-        return spent > 0 || b.limit > 0;
-    });
-    
-    if (activeBudgets.length === 0) {
-        budgetsList.innerHTML = '<div class="empty-state">No budget limits set</div>';
-    } else {
-        budgetsList.innerHTML = activeBudgets.map(budget => {
-            const cat = categories[budget.category];
-            const spent = categoryTotals[budget.category] || 0;
-            const percentage = (spent / budget.limit) * 100;
-            const colorClass = percentage > 90 ? 'red' : percentage > 70 ? 'yellow' : 'green';
-            
-            return `
-                <div class="budget-item">
-                    <div class="budget-header">
-                        <div class="budget-name">
-                            <div class="budget-dot ${cat.color}"></div>
-                            <span>${cat.name}</span>
+    if (budgetsList) {
+        const activeBudgets = budgets.filter(b => {
+            const spent = categoryTotals[b.category] || 0;
+            return spent > 0 || b.limit > 0;
+        });
+        
+        if (activeBudgets.length === 0) {
+            budgetsList.innerHTML = '<div class="empty-state">No budget limits set</div>';
+        } else {
+            budgetsList.innerHTML = activeBudgets.map(budget => {
+                const cat = categories[budget.category];
+                const spent = categoryTotals[budget.category] || 0;
+                const percentage = (spent / budget.limit) * 100;
+                const colorClass = percentage > 90 ? 'red' : percentage > 70 ? 'yellow' : 'green';
+                
+                return `
+                    <div class="budget-item">
+                        <div class="budget-header">
+                            <div class="budget-name">
+                                <div class="budget-dot ${cat.color}"></div>
+                                <span>${cat.name}</span>
+                            </div>
+                            <div class="budget-amount">${spent.toFixed(2)} / ${budget.limit.toFixed(2)}</div>
                         </div>
-                        <div class="budget-amount">$${spent.toFixed(2)} / $${budget.limit.toFixed(2)}</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill ${colorClass}" style="width: ${Math.min(percentage, 100)}%"></div>
+                        </div>
                     </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill ${colorClass}" style="width: ${Math.min(percentage, 100)}%"></div>
-                    </div>
-                </div>
-            `;
-        }).join('');
+                `;
+            }).join('');
+        }
     }
 }
 
 // API Functions
 function saveApiKey() {
     const input = document.getElementById('apiKeyInput');
+    if (!input) return;
+    
     apiKey = input.value.trim();
+    
+    const apiStatus = document.getElementById('apiStatus');
+    const apiStatusText = document.getElementById('apiStatusText');
     
     if (apiKey && apiKey.startsWith('gsk_')) {
         useRealAI = true;
-        document.getElementById('apiStatus').classList.add('active');
-        document.getElementById('apiStatusText').textContent = 'Groq AI Connected ✓';
+        if (apiStatus) apiStatus.classList.add('active');
+        if (apiStatusText) apiStatusText.textContent = 'Groq AI Connected ✓';
         console.log('✅ Groq API Key saved successfully');
     } else if (apiKey === '') {
         useRealAI = false;
         apiKey = '';
-        document.getElementById('apiStatus').classList.remove('active');
-        document.getElementById('apiStatusText').textContent = 'Using basic responses';
+        if (apiStatus) apiStatus.classList.remove('active');
+        if (apiStatusText) apiStatusText.textContent = 'Using basic responses';
     } else {
         alert('Invalid key format. Groq keys start with "gsk_"');
         console.log('❌ Invalid key format');
@@ -575,12 +795,17 @@ function saveApiKey() {
 }
 
 function askQuestion(question) {
-    document.getElementById('chatInput').value = question;
-    sendMessage();
+    const input = document.getElementById('chatInput');
+    if (input) {
+        input.value = question;
+        sendMessage();
+    }
 }
 
 async function sendMessage() {
     const input = document.getElementById('chatInput');
+    if (!input) return;
+    
     const message = input.value.trim();
     
     if (!message || isTyping) return;
@@ -630,13 +855,11 @@ async function getGroqResponse(userMessage) {
     const remaining = income - totalExpenses;
     const savingsRate = income > 0 ? ((remaining / income) * 100).toFixed(1) : 0;
     
-    // Build expense breakdown
     const expenseBreakdown = Object.keys(categories).map(id => {
         const total = expenses.filter(e => e.category === id).reduce((s, e) => s + e.amount, 0);
         return total > 0 ? `${categories[id].name}: ${total.toFixed(2)}` : null;
     }).filter(x => x).join(', ') || 'No expenses yet';
     
-    // Build budget status
     const categoryTotals = {};
     expenses.forEach(e => {
         categoryTotals[e.category] = (categoryTotals[e.category] || 0) + e.amount;
@@ -742,6 +965,7 @@ function generateAdvice(question) {
 
 function renderMessages() {
     const container = document.getElementById('chatMessages');
+    if (!container) return;
     
     if (messages.length === 0) {
         container.innerHTML = `
@@ -775,9 +999,6 @@ function renderMessages() {
         container.scrollTop = container.scrollHeight;
     }
 }
-
-// Initialize
-updateDisplay();
     </script>
 </body>
 </html>
