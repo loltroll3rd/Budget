@@ -345,15 +345,21 @@
                     <span id="apiStatusText">Using basic responses</span>
                 </div>
                 <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem;">
-                    Get token: <a href="https://huggingface.co/settings/tokens" target="_blank" style="color: #a855f7;">huggingface.co/settings/tokens</a>
-                    <br>✓ Create token with READ access
-                    <br>✓ Copy FULL token (starts with hf_)
+                    <strong>⚠️ AI Feature Limitations:</strong><br>
+                    • Works on GitHub Pages, local files, or web servers<br>
+                    • Does NOT work in Claude.ai artifacts (sandbox blocks external APIs)<br>
+                    • Basic financial advice always works everywhere
                 </p>
-                <p style="font-size: 0.7rem; color: #ef4444; margin-top: 0.5rem;">
-                    ⚠️ GitHub Pages may block API calls (CORS). If it fails, download and run this HTML file locally.
+                <p style="font-size: 0.75rem; color: #22c55e; margin-top: 0.5rem;">
+                    <strong>To use AI features:</strong><br>
+                    1. Download this HTML file<br>
+                    2. Upload to GitHub Pages OR open locally<br>
+                    3. Get token: <a href="https://huggingface.co/settings/tokens" target="_blank" style="color: #a855f7;">huggingface.co/settings/tokens</a><br>
+                    4. Enable "Make calls to serverless Inference API"<br>
+                    5. Paste token and chat!
                 </p>
                 <p style="font-size: 0.7rem; color: #9ca3af; margin-top: 0.25rem;">
-                    💡 Check console (F12) for detailed logs
+                    💡 The built-in financial advisor provides excellent advice without AI
                 </p>
             </div>
             <div class="chat-messages" id="chatMessages">
