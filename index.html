@@ -47,6 +47,10 @@
             color: white;
             font-size: 1rem;
         }
+        select option {
+            background: #1e293b;
+            color: white;
+        }
         input::placeholder { color: #6b7280; }
         input:focus, select:focus {
             outline: none;
@@ -55,7 +59,7 @@
         }
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 1.5rem;
             margin-bottom: 2rem;
         }
@@ -112,6 +116,24 @@
         .expense-info { display: flex; align-items: center; gap: 0.75rem; }
         .expense-dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; }
         .expense-details { font-size: 0.875rem; color: #9ca3af; margin-top: 0.25rem; }
+        .expense-tags {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-top: 0.5rem;
+        }
+        .tag {
+            background: rgba(168, 85, 247, 0.2);
+            color: #c084fc;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .tag.taxback {
+            background: rgba(34, 197, 94, 0.2);
+            color: #4ade80;
+        }
         .expense-actions { display: flex; align-items: center; gap: 1rem; }
         .expense-amount { font-weight: bold; font-size: 1.125rem; }
         .delete-btn { background: none; color: #ef4444; padding: 0.5rem; font-size: 1.25rem; }
@@ -267,16 +289,21 @@
         <div class="stats-grid">
             <div class="stat-card income">
                 <div class="stat-label">Total Income</div>
-                <div class="stat-value" id="totalIncome">$0.00</div>
+                <div class="stat-value" id="totalIncome">AUD$0.00</div>
             </div>
             <div class="stat-card expenses">
                 <div class="stat-label">Total Expenses</div>
-                <div class="stat-value" id="totalExpenses">$0.00</div>
+                <div class="stat-value" id="totalExpenses">AUD$0.00</div>
             </div>
             <div class="stat-card remaining" id="remainingCard">
                 <div class="stat-label">Remaining</div>
-                <div class="stat-value" id="remaining">$0.00</div>
+                <div class="stat-value" id="remaining">AUD$0.00</div>
                 <div class="stat-subtext" id="savingsRate">0% savings rate</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(147, 51, 234, 0.2)); border-color: rgba(168, 85, 247, 0.3);">
+                <div class="stat-label">Tax Refund Est.</div>
+                <div class="stat-value" id="taxRefund">AUD$0.00</div>
+                <div class="stat-subtext" id="taxItems">0 claimable items</div>
             </div>
         </div>
         <div class="main-grid">
@@ -288,6 +315,7 @@
                 <div id="addExpenseForm" class="form-section hidden">
                     <input type="text" id="expenseName" placeholder="Expense name" style="margin-bottom: 0.75rem;">
                     <input type="number" id="expenseAmount" placeholder="Amount" style="margin-bottom: 0.75rem;">
+                    <input type="date" id="expenseDate" style="margin-bottom: 0.75rem;">
                     <select id="expenseCategory" style="margin-bottom: 0.75rem;">
                         <option value="food">Food & Dining</option>
                         <option value="transport">Transportation</option>
@@ -297,6 +325,7 @@
                         <option value="health">Health</option>
                         <option value="other">Other</option>
                     </select>
+                    <input type="text" id="expenseTags" placeholder="Tags (e.g., #taxback #work)" style="margin-bottom: 0.75rem;">
                     <button onclick="addExpense()" style="width: 100%;">Add Expense</button>
                 </div>
                 <div id="expensesList" class="scrollable"><div class="empty-state">No expenses yet</div></div>
@@ -524,33 +553,20 @@ function changeTheme(themeName) {
     const chatBtn = document.querySelector('.chat-button');
     if (chatBtn) chatBtn.style.background = theme.primaryBtn;
     
-    try {
-        localStorage.setItem('budgetTheme', themeName);
-    } catch (e) {
-        console.log('Theme not saved (localStorage unavailable)');
-    }
-    
     console.log(`🎨 Theme changed to: ${theme.name}`);
 }
 
 // Event Listeners
 document.addEventListener('DOMContentLoaded', function() {
-    // Load saved theme
-    try {
-        const savedTheme = localStorage.getItem('budgetTheme') || 'cyberpunk';
-        const themeSelect = document.getElementById('themeSelect');
-        if (themeSelect) {
-            themeSelect.value = savedTheme;
-            themeSelect.addEventListener('change', function() {
-                changeTheme(this.value);
-            });
-            changeTheme(savedTheme);
-        }
-    } catch (e) {
-        console.log('Could not load saved theme');
+    const themeSelect = document.getElementById('themeSelect');
+    if (themeSelect) {
+        themeSelect.value = 'cyberpunk';
+        themeSelect.addEventListener('change', function() {
+            changeTheme(this.value);
+        });
+        changeTheme('cyberpunk');
     }
     
-    // Income input
     const incomeInput = document.getElementById('income');
     if (incomeInput) {
         incomeInput.addEventListener('input', function(e) {
@@ -559,7 +575,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Chat button
     const chatButton = document.getElementById('chatButton');
     if (chatButton) {
         chatButton.addEventListener('click', function() {
@@ -568,7 +583,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Chat input enter key
     const chatInput = document.getElementById('chatInput');
     if (chatInput) {
         chatInput.addEventListener('keypress', function(e) {
@@ -576,7 +590,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Close on Escape key
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             const modal = document.getElementById('chatModal');
@@ -586,7 +599,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Close on backdrop click
     const chatModal = document.getElementById('chatModal');
     if (chatModal) {
         chatModal.addEventListener('click', function(e) {
@@ -612,7 +624,13 @@ function toggleSettings() {
 
 function toggleAddExpense() {
     const form = document.getElementById('addExpenseForm');
-    if (form) form.classList.toggle('hidden');
+    if (form) {
+        form.classList.toggle('hidden');
+        const dateInput = document.getElementById('expenseDate');
+        if (dateInput && !dateInput.value) {
+            dateInput.value = new Date().toISOString().split('T')[0];
+        }
+    }
 }
 
 function toggleAddBudget() {
@@ -623,25 +641,40 @@ function toggleAddBudget() {
 function addExpense() {
     const nameInput = document.getElementById('expenseName');
     const amountInput = document.getElementById('expenseAmount');
+    const dateInput = document.getElementById('expenseDate');
     const categorySelect = document.getElementById('expenseCategory');
+    const tagsInput = document.getElementById('expenseTags');
     
     if (!nameInput || !amountInput || !categorySelect) return;
     
     const name = nameInput.value.trim();
     const amount = amountInput.value;
+    const date = dateInput && dateInput.value ? dateInput.value : new Date().toISOString().split('T')[0];
     const category = categorySelect.value;
+    const tagsText = tagsInput ? tagsInput.value.trim() : '';
+    
+    const tags = tagsText
+        .split(/\s+/)
+        .filter(tag => tag.startsWith('#'))
+        .map(tag => tag.toLowerCase());
     
     if (name && amount) {
-        expenses.push({
+        const newExpense = {
             id: Date.now(),
             name: name,
             amount: parseFloat(amount),
             category: category,
-            date: new Date().toLocaleDateString()
-        });
+            date: date,
+            displayDate: new Date(date).toLocaleDateString(),
+            tags: tags
+        };
+        
+        expenses.push(newExpense);
         
         nameInput.value = '';
         amountInput.value = '';
+        if (dateInput) dateInput.value = '';
+        if (tagsInput) tagsInput.value = '';
         toggleAddExpense();
         updateDisplay();
     }
@@ -683,22 +716,29 @@ function updateDisplay() {
     const remaining = income - totalExpenses;
     const savingsRate = income > 0 ? ((remaining / income) * 100).toFixed(1) : 0;
     
+    const taxbackExpenses = expenses.filter(e => e.tags && e.tags.includes('#taxback'));
+    const taxRefundAmount = taxbackExpenses.reduce((sum, e) => sum + e.amount, 0) * 0.3;
+    const taxItemsCount = taxbackExpenses.length;
+    
     const totalIncomeEl = document.getElementById('totalIncome');
     const totalExpensesEl = document.getElementById('totalExpenses');
     const remainingEl = document.getElementById('remaining');
     const savingsRateEl = document.getElementById('savingsRate');
     const remainingCard = document.getElementById('remainingCard');
+    const taxRefundEl = document.getElementById('taxRefund');
+    const taxItemsEl = document.getElementById('taxItems');
     
     if (totalIncomeEl) totalIncomeEl.textContent = `${income.toFixed(2)}`;
     if (totalExpensesEl) totalExpensesEl.textContent = `${totalExpenses.toFixed(2)}`;
     if (remainingEl) remainingEl.textContent = `${remaining.toFixed(2)}`;
     if (savingsRateEl) savingsRateEl.textContent = `${savingsRate}% savings rate`;
+    if (taxRefundEl) taxRefundEl.textContent = `${taxRefundAmount.toFixed(2)}`;
+    if (taxItemsEl) taxItemsEl.textContent = `${taxItemsCount} claimable item${taxItemsCount !== 1 ? 's' : ''}`;
     
     if (remainingCard) {
         remainingCard.className = remaining >= 0 ? 'stat-card remaining' : 'stat-card remaining negative';
     }
     
-    // Update expenses list
     const expensesList = document.getElementById('expensesList');
     if (expensesList) {
         if (expenses.length === 0) {
@@ -706,6 +746,11 @@ function updateDisplay() {
         } else {
             expensesList.innerHTML = expenses.map(expense => {
                 const cat = categories[expense.category];
+                const tagsHtml = expense.tags && expense.tags.length > 0 
+                    ? `<div class="expense-tags">${expense.tags.map(tag => 
+                        `<span class="tag${tag === '#taxback' ? ' taxback' : ''}">${tag}</span>`
+                      ).join('')}</div>`
+                    : '';
                 return `
                     <div class="expense-item">
                         <div class="expense-header">
@@ -721,13 +766,13 @@ function updateDisplay() {
                                 <button class="delete-btn" onclick="deleteExpense(${expense.id})">✕</button>
                             </div>
                         </div>
+                        ${tagsHtml}
                     </div>
                 `;
             }).join('');
         }
     }
     
-    // Update budgets list
     const categoryTotals = {};
     expenses.forEach(e => {
         categoryTotals[e.category] = (categoryTotals[e.category] || 0) + e.amount;
