@@ -623,10 +623,44 @@
         </div>
     </div>
 
+    <button class="chat-button" onclick="toggleChat()" style="position: fixed; bottom: 2rem; right: 2rem; width: 60px; height: 60px; border-radius: 50%; background: #9333ea; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); display: flex; align-items: center; justify-content: center; z-index: 1000;">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+        </svg>
+    </button>
+
+    <div id="chatModal" class="chat-modal hidden">
+        <div class="chat-container">
+            <div class="chat-header">
+                <h3>💡 AI Financial Advisor</h3>
+                <button class="close-btn" onclick="toggleChat()">×</button>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                <div class="chat-empty">
+                    <p>👋 Hi! I'm your AI financial advisor.</p>
+                    <p>Ask me anything about your budget, savings, or spending!</p>
+                    <button class="suggestion-btn" onclick="askQuestion('How can I save more money?')">💰 How can I save more money?</button>
+                    <button class="suggestion-btn" onclick="askQuestion('Am I spending too much on anything?')">📊 Am I spending too much on anything?</button>
+                    <button class="suggestion-btn" onclick="askQuestion('What should my emergency fund be?')">🆘 What should my emergency fund be?</button>
+                </div>
+            </div>
+
+            <div class="chat-input-container">
+                <div class="chat-input-wrapper">
+                    <input type="text" id="chatInput" class="chat-input" placeholder="Ask about your finances..." onkeypress="if(event.key==='Enter') sendMessage()">
+                    <button class="send-btn" onclick="sendMessage()">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         let income = 0;
         let expenses = [];
         let budgets = [];
+        let messages = [];
+        let isTyping = false;
 
         const categories = {
             food: { name: 'Food & Dining', color: 'color-orange' },
@@ -771,6 +805,120 @@
                         </div>
                     `;
                 }).join('');
+            }
+        }
+
+        function toggleChat() {
+            const modal = document.getElementById('chatModal');
+            modal.classList.toggle('hidden');
+        }
+
+        function askQuestion(question) {
+            document.getElementById('chatInput').value = question;
+            sendMessage();
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (!message || isTyping) return;
+
+            messages.push({ role: 'user', content: message });
+            input.value = '';
+            renderMessages();
+
+            isTyping = true;
+            setTimeout(() => {
+                const advice = generateAdvice(message);
+                messages.push({ role: 'assistant', content: advice });
+                isTyping = false;
+                renderMessages();
+            }, 800);
+        }
+
+        function generateAdvice(question) {
+            const lowerQ = question.toLowerCase();
+            const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+            const remaining = income - totalExpenses;
+            const savingsRate = income > 0 ? ((remaining / income) * 100).toFixed(1) : 0;
+
+            if (lowerQ.includes('save') || lowerQ.includes('saving')) {
+                if (savingsRate < 10) {
+                    return `Your savings rate is ${savingsRate}%. Financial experts recommend saving at least 20%!\n\nTips to improve:\n• Reduce your highest spending category by 10-15%\n• Set up automatic savings transfers\n• Follow the 50/30/20 rule: 50% needs, 30% wants, 20% savings`;
+                } else if (savingsRate >= 20) {
+                    return `Excellent! You're saving ${savingsRate}% of your income! 🎉\n\nTo optimize further:\n• Consider investing for long-term growth\n• Build a 3-6 month emergency fund\n• Look into retirement accounts`;
+                } else {
+                    return `You're saving ${savingsRate}%, which is good! To reach 20%:\n\n• Identify one discretionary expense to reduce\n• Try the "pay yourself first" approach\n• Track daily spending to find hidden costs`;
+                }
+            }
+
+            if (lowerQ.includes('spend') || lowerQ.includes('budget')) {
+                const categoryTotals = {};
+                expenses.forEach(exp => {
+                    categoryTotals[exp.category] = (categoryTotals[exp.category] || 0) + exp.amount;
+                });
+
+                const overBudget = Object.keys(categories).filter(catId => {
+                    const budget = budgets.find(b => b.category === catId);
+                    const spent = categoryTotals[catId] || 0;
+                    return budget && (spent / budget.limit) > 1;
+                });
+
+                if (overBudget.length > 0) {
+                    const names = overBudget.map(id => categories[id].name).join(', ');
+                    return `⚠️ You're over budget in: ${names}\n\nWhat to do:\n• Review recent expenses in these categories\n• Set realistic budget limits\n• Use the 24-hour rule before purchases\n• Find alternatives (cook vs dine out)`;
+                }
+
+                const highest = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0];
+                if (highest) {
+                    const catName = categories[highest[0]].name;
+                    return `Your highest spending is ${catName} at ${highest[1].toFixed(2)}.\n\nConsider:\n• Setting a specific budget for this category\n• Tracking individual purchases\n• Finding lower-cost alternatives`;
+                }
+            }
+
+            if (lowerQ.includes('emergency') || lowerQ.includes('fund')) {
+                const monthlyExpenses = totalExpenses || income * 0.5;
+                const emergencyTarget = (monthlyExpenses * 3).toFixed(2);
+                return `Your emergency fund should cover 3-6 months of expenses.\n\nTarget: ${emergencyTarget} (3 months)\n\n• Keep it in a high-yield savings account\n• Build gradually, even $50/month helps\n• Use only for true emergencies`;
+            }
+
+            return `Based on your budget:\n\n• Income: ${income.toFixed(2)}\n• Expenses: ${totalExpenses.toFixed(2)}\n• Savings: ${savingsRate}%\n\nGeneral tips:\n• Aim for 20% savings rate\n• Review spending weekly\n• Build a 3-6 month emergency fund\n• Track small purchases - they add up!\n\nAsk me about: savings, spending, budgets, or emergency funds`;
+        }
+
+        function renderMessages() {
+            const container = document.getElementById('chatMessages');
+            
+            if (messages.length === 0) {
+                container.innerHTML = `
+                    <div class="chat-empty">
+                        <p>👋 Hi! I'm your AI financial advisor.</p>
+                        <p>Ask me anything about your budget, savings, or spending!</p>
+                        <button class="suggestion-btn" onclick="askQuestion('How can I save more money?')">💰 How can I save more money?</button>
+                        <button class="suggestion-btn" onclick="askQuestion('Am I spending too much on anything?')">📊 Am I spending too much on anything?</button>
+                        <button class="suggestion-btn" onclick="askQuestion('What should my emergency fund be?')">🆘 What should my emergency fund be?</button>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = messages.map(msg => `
+                    <div class="message ${msg.role}">
+                        <div class="message-content">${msg.content}</div>
+                    </div>
+                `).join('');
+
+                if (isTyping) {
+                    container.innerHTML += `
+                        <div class="message assistant">
+                            <div class="typing-indicator">
+                                <div class="typing-dot"></div>
+                                <div class="typing-dot"></div>
+                                <div class="typing-dot"></div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                container.scrollTop = container.scrollHeight;
             }
         }
 
