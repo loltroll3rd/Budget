@@ -373,9 +373,16 @@ let income=0,expenses=[],budgets=[],messages=[],isTyping=!1,apiKey='',useRealAI=
 const cat={food:{name:'Food & Dining',color:'color-orange'},transport:{name:'Transportation',color:'color-blue'},entertainment:{name:'Entertainment',color:'color-purple'},shopping:{name:'Shopping',color:'color-pink'},bills:{name:'Bills & Utilities',color:'color-red'},health:{name:'Health',color:'color-green'},other:{name:'Other',color:'color-gray'}};
 
 document.getElementById('income').addEventListener('input',e=>{income=parseFloat(e.target.value)||0;updateDisplay()});
-document.getElementById('chatButton').addEventListener('click',()=>document.getElementById('chatModal').classList.remove('hidden'));
+document.getElementById('chatButton').addEventListener('click',()=>{console.log('Chat button clicked');document.getElementById('chatModal').classList.remove('hidden')});
 document.getElementById('chatInput').addEventListener('keypress',e=>{if(e.key==='Enter')sendMessage()});
-document.getElementById('aiProvider').addEventListener('change',e=>{aiProvider=e.target.value;updateProviderUI()});
+
+window.addEventListener('DOMContentLoaded',()=>{
+    const provider=document.getElementById('aiProvider');
+    if(provider){
+        provider.addEventListener('change',e=>{aiProvider=e.target.value;updateProviderUI()});
+        updateProviderUI();
+    }
+});
 
 function closeChat(){document.getElementById('chatModal').classList.add('hidden')}
 function toggleSettings(){document.getElementById('apiSettings').classList.toggle('hidden')}
