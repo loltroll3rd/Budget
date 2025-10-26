@@ -289,20 +289,20 @@
         <div class="stats-grid">
             <div class="stat-card income">
                 <div class="stat-label">Total Income</div>
-                <div class="stat-value" id="totalIncome">AUD$0.00</div>
+                <div class="stat-value" id="totalIncome">$0.00</div>
             </div>
             <div class="stat-card expenses">
                 <div class="stat-label">Total Expenses</div>
-                <div class="stat-value" id="totalExpenses">AUD$0.00</div>
+                <div class="stat-value" id="totalExpenses">$0.00</div>
             </div>
             <div class="stat-card remaining" id="remainingCard">
                 <div class="stat-label">Remaining</div>
-                <div class="stat-value" id="remaining">AUD$0.00</div>
+                <div class="stat-value" id="remaining">$0.00</div>
                 <div class="stat-subtext" id="savingsRate">0% savings rate</div>
             </div>
             <div class="stat-card" style="background: linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(147, 51, 234, 0.2)); border-color: rgba(168, 85, 247, 0.3);">
                 <div class="stat-label">Tax Refund Est.</div>
-                <div class="stat-value" id="taxRefund">AUD$0.00</div>
+                <div class="stat-value" id="taxRefund">$0.00</div>
                 <div class="stat-subtext" id="taxItems">0 claimable items</div>
             </div>
         </div>
@@ -733,11 +733,11 @@ function updateDisplay() {
     const taxRefundEl = document.getElementById('taxRefund');
     const taxItemsEl = document.getElementById('taxItems');
     
-    if (totalIncomeEl) totalIncomeEl.textContent = `${income.toFixed(2)}`;
-    if (totalExpensesEl) totalExpensesEl.textContent = `${totalExpenses.toFixed(2)}`;
-    if (remainingEl) remainingEl.textContent = `${remaining.toFixed(2)}`;
+    if (totalIncomeEl) totalIncomeEl.textContent = `$${income.toFixed(2)}`;
+    if (totalExpensesEl) totalExpensesEl.textContent = `$${totalExpenses.toFixed(2)}`;
+    if (remainingEl) remainingEl.textContent = `$${remaining.toFixed(2)}`;
     if (savingsRateEl) savingsRateEl.textContent = `${savingsRate}% savings rate`;
-    if (taxRefundEl) taxRefundEl.textContent = `${taxRefundAmount.toFixed(2)}`;
+    if (taxRefundEl) taxRefundEl.textContent = `$${taxRefundAmount.toFixed(2)}`;
     if (taxItemsEl) taxItemsEl.textContent = `${taxItemsCount} claimable item${taxItemsCount !== 1 ? 's' : ''}`;
     
     if (remainingCard) {
@@ -767,7 +767,7 @@ function updateDisplay() {
                                 </div>
                             </div>
                             <div class="expense-actions">
-                                <div class="expense-amount">${expense.amount.toFixed(2)}</div>
+                                <div class="expense-amount">$${expense.amount.toFixed(2)}</div>
                                 <button class="delete-btn" onclick="deleteExpense(${expense.id})">✕</button>
                             </div>
                         </div>
@@ -806,7 +806,7 @@ function updateDisplay() {
                                 <div class="budget-dot ${cat.color}"></div>
                                 <span>${cat.name}</span>
                             </div>
-                            <div class="budget-amount">${spent.toFixed(2)} / ${budget.limit.toFixed(2)}</div>
+                            <div class="budget-amount">$${spent.toFixed(2)} / $${budget.limit.toFixed(2)}</div>
                         </div>
                         <div class="progress-bar">
                             <div class="progress-fill ${colorClass}" style="width: ${Math.min(percentage, 100)}%"></div>
@@ -907,7 +907,7 @@ async function getGroqResponse(userMessage) {
     
     const expenseBreakdown = Object.keys(categories).map(id => {
         const total = expenses.filter(e => e.category === id).reduce((s, e) => s + e.amount, 0);
-        return total > 0 ? `${categories[id].name}: ${total.toFixed(2)}` : null;
+        return total > 0 ? `${categories[id].name}: $${total.toFixed(2)}` : null;
     }).filter(x => x).join(', ') || 'No expenses yet';
     
     const categoryTotals = {};
@@ -918,15 +918,15 @@ async function getGroqResponse(userMessage) {
     const budgetStatus = budgets.map(b => {
         const spent = categoryTotals[b.category] || 0;
         const percentage = ((spent / b.limit) * 100).toFixed(0);
-        return `${categories[b.category].name}: ${spent.toFixed(2)}/${b.limit.toFixed(2)} (${percentage}%)`;
+        return `${categories[b.category].name}: $${spent.toFixed(2)}/$${b.limit.toFixed(2)} (${percentage}%)`;
     }).join(', ') || 'No budget limits set';
     
     const systemPrompt = `You are a helpful financial advisor. Analyze the user's budget data and provide personalized advice.
 
 Budget Data:
-- Weekly Budget: ${income.toFixed(2)}
-- Total Expenses: ${totalExpenses.toFixed(2)}
-- Remaining: ${remaining.toFixed(2)}
+- Weekly Budget: $${income.toFixed(2)}
+- Total Expenses: $${totalExpenses.toFixed(2)}
+- Remaining: $${remaining.toFixed(2)}
 - Savings Rate: ${savingsRate}%
 - Expense Breakdown: ${expenseBreakdown}
 - Budget Limits: ${budgetStatus}
@@ -1000,17 +1000,17 @@ function generateAdvice(question) {
         
         const highest = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0];
         if (highest) {
-            return `Top spending: ${categories[highest[0]].name} at ${highest[1].toFixed(2)}\n\n💡 Tips:\n• Set a specific budget\n• Track each purchase\n• Look for cheaper options\n• Plan ahead`;
+            return `Top spending: ${categories[highest[0]].name} at $${highest[1].toFixed(2)}\n\n💡 Tips:\n• Set a specific budget\n• Track each purchase\n• Look for cheaper options\n• Plan ahead`;
         }
     }
     
     if (lowerQ.includes('emergency') || lowerQ.includes('fund')) {
         const monthlyExpenses = totalExpenses || income * 0.5;
         const target = (monthlyExpenses * 3).toFixed(2);
-        return `Emergency fund: 3-6 months of expenses\n\nYour target: ${target}\n\n💡 Tips:\n• High-yield savings account\n• Build gradually (10% each month)\n• Only for true emergencies\n• Keep it separate from daily spending`;
+        return `Emergency fund: 3-6 months of expenses\n\nYour target: $${target}\n\n💡 Tips:\n• High-yield savings account\n• Build gradually (10% each month)\n• Only for true emergencies\n• Keep it separate from daily spending`;
     }
     
-    return `Budget overview:\n\n📊 Stats:\n• Income: ${income.toFixed(2)}\n• Expenses: ${totalExpenses.toFixed(2)}\n• Savings: ${savingsRate}%\n\n💡 Tips:\n• Aim for 20% savings rate\n• Review spending weekly\n• Build 3-6 month emergency fund\n• Track ALL purchases!`;
+    return `Budget overview:\n\n📊 Stats:\n• Income: $${income.toFixed(2)}\n• Expenses: $${totalExpenses.toFixed(2)}\n• Savings: ${savingsRate}%\n\n💡 Tips:\n• Aim for 20% savings rate\n• Review spending weekly\n• Build 3-6 month emergency fund\n• Track ALL purchases!`;
 }
 
 function renderMessages() {
